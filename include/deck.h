@@ -11,29 +11,38 @@
 /// The number of cards in a full deck.
 inline constexpr int deck_size = 52;
 
-// TODO: Write the class invariant here as a comment.
-//  Say what m_cards points to, what m_size is, and what range m_next may have.
+// Class invariant:
+//  - m_cards points to a heap array of m_size Cards allocated with new[].
+//    This Deck owns that array and no other Deck shares it. m_cards may be
+//    nullptr only when m_size is 0.
+//  - m_size is the number of cards in the array (deck_size for a full deck).
+//  - 0 <= m_next <= m_size. m_next is the index of the next card deal() will
+//    return. Cards at indexes m_next to m_size - 1 have not been dealt yet.
+//    When m_next == m_size, every card has been dealt and the deck is empty.
 //
-// TODO: Explain here what goes wrong if operator= omits the self-assignment
-//  check (d = d;).
+// Why operator= needs the self-assignment check:
+//  In d = d, this and other are the same object, so m_cards and other.m_cards
+//  are the same pointer. If operator= frees the old cards first and then
+//  copies from other, it is copying from the array it just deleted. That is a
+//  use-after-free: the cards are lost or replaced with garbage, and
+//  AddressSanitizer reports heap-use-after-free. Checking this == &other and
+//  returning early means assigning a deck to itself does nothing, which is
+//  the correct result.
 
 /// A deck of playing cards stored in a heap array.
 class Deck {
 public:
   /// Make a full, ordered deck: one of each rank in each suit.
-  /// TODO: allocate with new[] and fill in all 52 cards.
   Deck();
 
   /// Free the cards.
-  /// TODO:
   ~Deck();
 
-  /// Make an independent copy of another deck.
-  /// TODO: A deep copy, not a copy of the pointer.
+  /// Make an independent copy of another deck (a deep copy).
   Deck(const Deck &other);
 
   /// Replace this deck's contents with a copy of another deck.
-  /// TODO: Free the old cards, copy the new ones, and survive d = d.
+  /// Safe when assigning a deck to itself.
   Deck &operator=(const Deck &other);
 
   /// Put all the cards in random order and start dealing from the top again.
@@ -46,10 +55,10 @@ public:
   Card deal();
 
   /// @return true if every card has been dealt
-  bool empty();
+  bool empty() const;
 
   /// @return how many cards are left to deal
-  int remaining();
+  int remaining() const;
 
 private:
   Card *m_cards;
